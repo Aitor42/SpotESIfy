@@ -2,7 +2,7 @@ const Redis = require('ioredis');
 
 const REDIS_HOST = process.env.REDIS_HOST || 'db';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
-const REDIS_PASS = process.env.REDIS_PASS || '';
+const REDIS_PASS = process.env.REDIS_PASS || 'spotesify123';
 
 const redis = new Redis({
   host: REDIS_HOST,

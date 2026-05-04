@@ -12,7 +12,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const REDIS_HOST = process.env.REDIS_HOST || 'db';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
-const REDIS_PASS = process.env.REDIS_PASS || '';  // ← OJO: nombre de variable
+const REDIS_PASS = process.env.REDIS_PASS || 'spotesify123';  // ← OJO: nombre de variable
 const MUSIC_DIR = process.env.MUSIC_DIR || '/data/music';
 
 // ── Conexión Redis ──────────────────────────────────────────────────────────
