@@ -2,7 +2,7 @@ const Redis = require('ioredis');
 
 const REDIS_HOST = process.env.REDIS_HOST || 'db';
 const REDIS_PORT = process.env.REDIS_PORT || 6379;
-const REDIS_PASS = process.env.REDIS_PASS || '';
+const REDIS_PASS = process.env.REDIS_PASS || 'spotesify123';
 const INTERVAL = process.env.COLLECT_INTERVAL || 5000;
 
 const redis = new Redis({
@@ -20,6 +20,7 @@ const redis = new Redis({
 // PROBLEMA: Este array crece indefinidamente y nunca se limpia
 // Con un mem_limit bajo (10MB), el proceso muere por OOM (exit 137)
 const metricsHistory = [];
+const MAX_HISTORY_SIZE = 50;
 
 function collectMetrics() {
   const metrics = {
@@ -31,8 +32,10 @@ function collectMetrics() {
   };
 
   metricsHistory.push(metrics);
-  metricsHistory.push(JSON.parse(JSON.stringify(metrics)));
-  metricsHistory.push(Buffer.alloc(1024 * 512));
+
+  if (metricsHistory.length > MAX_HISTORY_SIZE) {
+    metricsHistory.shift();
+  }
 
   console.log(
     `[Worker] Métricas recolectadas (#${metricsHistory.length}) — ` +
