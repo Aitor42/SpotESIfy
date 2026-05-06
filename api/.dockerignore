@@ -1,0 +1,21 @@
+# ── Dependencias ─────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Archivos de Git y herramientas ───────────────────────────────────────────
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# ── Tests, documentación y logs ──────────────────────────────────────────────
+coverage/
+tests/
+logs/
+*.log
+README.md
+docs/
