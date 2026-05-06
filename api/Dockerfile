@@ -7,9 +7,11 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-COPY . .
+COPY package*.json ./
 
 RUN npm install --only=production && npm cache clean --force
+
+COPY . .
 
 RUN chown -R appuser:appgroup /app
 
