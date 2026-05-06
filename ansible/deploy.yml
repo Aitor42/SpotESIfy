@@ -1,0 +1,91 @@
+- name: Despliegue automatizado de SpotESIfy
+  hosts: all
+  become: yes
+  vars:
+    project_src: "./"
+    project_dest: "/opt/spotesify"
+
+  tasks:
+    # ── 1. Instalar Docker y Docker Compose ──────────────────────────────────
+    - name: Instalar dependencias previas para Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Añadir clave GPG oficial de Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Añadir el repositorio oficial de Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Instalar Docker y Docker Compose Plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Asegurar que el servicio de Docker está activado y corriendo
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    # ── 2. Copiar los ficheros del proyecto ──────────────────────────────────
+    - name: Copiar ficheros del proyecto al servidor destino
+      copy:
+        src: "{{ project_src }}"
+        dest: "{{ project_dest }}"
+        owner: root
+        group: root
+        mode: '0755'
+
+    # ── 3. Construir las imágenes y levantar los servicios ───────────────────
+    - name: Levantar SpotESIfy con Docker Compose
+      command: docker compose up -d --build
+      args:
+        chdir: "{{ project_dest }}"
+      register: docker_output
+      changed_when: >
+        'Created' in docker_output.stdout or
+        'Started' in docker_output.stdout or
+        'Recreated' in docker_output.stdout or
+        'Building' in docker_output.stdout
+
+    # ── 4. Verificar que la aplicación arranca correctamente ─────────────────
+    - name: Esperar 15 segundos para que los servicios arranquen completamente
+      pause:
+        seconds: 15
+      when: docker_output.changed
+
+    - name: Verificar que el Frontend (Nginx) responde
+      uri:
+        url: "http://localhost/"
+        method: GET
+        status_code: 200
+      register: verify_web
+      until: verify_web.status == 200
+      retries: 3
+      delay: 5
+
+    - name: Verificar que la API responde (Healthcheck)
+      uri:
+        url: "http://localhost/api/health"
+        method: GET
+        status_code: 200
+      register: verify_api
+      until: verify_api.status == 200
+      retries: 3
+      delay: 5
