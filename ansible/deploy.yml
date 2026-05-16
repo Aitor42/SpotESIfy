@@ -1,6 +1,6 @@
 - name: Despliegue automatizado de SpotESIfy
   hosts: all
-  become: yes
+  become: true
   vars:
     project_src: "./"
     project_dest: "/opt/spotesify"
