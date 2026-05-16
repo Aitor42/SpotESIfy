@@ -7,7 +7,7 @@
 
   tasks:
     # ── 1. Instalar Docker y Docker Compose ──────────────────────────────────
-    - name: Instalar dependencias previas para Docker
+    - name: Instalar dependencias previas
       apt:
         name:
           - apt-transport-https
@@ -15,17 +15,25 @@
           - curl
           - gnupg
           - lsb-release
+          - rsync
         state: present
-        update_cache: yes
+        update_cache: true
 
-    - name: Añadir clave GPG oficial de Docker
-      apt_key:
+    - name: Crear directorio para el keyring de Docker
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Descargar clave GPG oficial de Docker
+      get_url:
         url: https://download.docker.com/linux/ubuntu/gpg
-        state: present
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
 
     - name: Añadir el repositorio oficial de Docker
       apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
 
     - name: Instalar Docker y Docker Compose Plugin
@@ -41,28 +49,33 @@
       systemd:
         name: docker
         state: started
-        enabled: yes
+        enabled: true
 
     # ── 2. Copiar los ficheros del proyecto ──────────────────────────────────
-    - name: Copiar ficheros del proyecto al servidor destino
-      copy:
+    - name: Sincronizar ficheros del proyecto al servidor destino
+      synchronize:
         src: "{{ project_src }}"
         dest: "{{ project_dest }}"
+        rsync_opts:
+          - "--exclude=.git"
+          - "--exclude=node_modules"
+          - "--exclude=__pycache__"
+
+    - name: Ajustar permisos del directorio destino
+      file:
+        path: "{{ project_dest }}"
         owner: root
         group: root
         mode: '0755'
+        recurse: true
 
     # ── 3. Construir las imágenes y levantar los servicios ───────────────────
-    - name: Levantar SpotESIfy con Docker Compose
-      command: docker compose up -d --build
-      args:
-        chdir: "{{ project_dest }}"
+    - name: Levantar SpotESIfy con Docker Compose V2
+      community.docker.docker_compose_v2:
+        project_src: "{{ project_dest }}"
+        state: present
+        build: always
       register: docker_output
-      changed_when: >
-        'Created' in docker_output.stdout or
-        'Started' in docker_output.stdout or
-        'Recreated' in docker_output.stdout or
-        'Building' in docker_output.stdout
 
     # ── 4. Verificar que la aplicación arranca correctamente ─────────────────
     - name: Esperar 15 segundos para que los servicios arranquen completamente
